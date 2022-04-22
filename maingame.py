@@ -46,12 +46,13 @@ class MyGame(arcade.Window):
         self.clear()
 
         # Call draw() on all your sprite lists below
-    def grid(self, x, y, width, height, versquares, horsquares, linesize=0):
-        sqwidth, sqheight = width//horsquares, height//versquares
+    def grid_draw(self, x, y, sqwidth, sqheight, versquares, horsquares, rgbcolor, linesize=1):
+        arcade.start_render()
         for i in range(versquares):
             for j in range(horsquares):
-                print(x+(sqwidth*j), y+(sqheight*i), x+(sqwidth*(j+1)), y+(sqwidth*(i+1)))
-                arcade.draw_lrtb_rectangle_filled(x+(sqwidth*j), x+(sqwidth*(j+1)), y+(sqheight*i), y+(sqwidth*(i+1)), arcade.csscolor.GREEN)
+                print(x+(sqwidth*j), y+(sqheight*i))
+                arcade.draw_rectangle_filled(x+(sqwidth*j), y+(sqheight*i), sqwidth-linesize, sqwidth-linesize, rgbcolor)
+        arcade.finish_render()
 
 
     def on_update(self, delta_time):
@@ -66,8 +67,7 @@ class MyGame(arcade.Window):
         """
         Called when the user presses a mouse button.
         """
-        self.grid(0,0,100,100,10,10)
-        arcade.set_background_color((randint(0, 255), randint(0, 255), randint(0, 255)))
+        self.grid_draw(5,5,10,10,10,10,(10,10,10))
 
 
 
