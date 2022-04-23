@@ -1,59 +1,42 @@
-"""
-Starting Template
-
-Once you have learned how to use classes, you can begin your program with this
-template.
-
-If Python and Arcade are installed, this example can be run from the command line with:
-python -m arcade.examples.starting_template
-"""
 import arcade
-from random import randint
+import _thread
+from random import randint, choice 
+import time
 
 SCREEN_WIDTH = 800
 SCREEN_HEIGHT = 600
-SCREEN_TITLE = "Starting Template"
+SCREEN_TITLE = "Self-dungeon"
+act = 0
+tick = 100
+
 
 class MyGame(arcade.Window):
-    """
-    Main application class.
-
-    NOTE: Go ahead and delete the methods you don't need.
-    If you do need a method, delete the 'pass' and replace it
-    with your own code. Don't leave 'pass' in this program.
-    """
-
     def __init__(self, width, height, title):
         super().__init__(width, height, title)
-
         arcade.set_background_color(arcade.color.AMAZON)
-
-        # If you have sprite lists, you should create them here,
-        # and set them to None
+        self.player = None
 
     def setup(self):
         """ Set up the game variables. Call to re-start the game. """
         # Create your sprites and sprite lists here
-        pass
+        self.rectangles = []
+        self.player = {
+            'x': 0,
+            'y': 0,
+            'width': 20,
+            'height': 20,
+            'color': (22,222,22),
+            'mov_dis': 40
+        }
 
     def on_draw(self):
-        """
-        Render the screen.
-        """
-
-        # This command should happen before we start drawing. It will clear
-        # the screen to the background color, and erase what we drew last frame.
         self.clear()
 
-        # Call draw() on all your sprite lists below
+
     def grid_draw(self, x, y, sqwidth, sqheight, versquares, horsquares, rgbcolor, linesize=1):
-        arcade.start_render()
         for i in range(versquares):
             for j in range(horsquares):
-                print(x+(sqwidth*j), y+(sqheight*i))
                 arcade.draw_rectangle_filled(x+(sqwidth*j), y+(sqheight*i), sqwidth-linesize, sqwidth-linesize, rgbcolor)
-        arcade.finish_render()
-
 
     def on_update(self, delta_time):
         """
@@ -63,11 +46,20 @@ class MyGame(arcade.Window):
         """
         pass
 
-    def on_mouse_press(self, x, y, button, key_modifiers):
-        """
-        Called when the user presses a mouse button.
-        """
-        self.grid_draw(5,5,10,10,10,10,(10,10,10))
+    def on_key_release(self, key, modifiers):
+        if key == arcade.key.UP:
+            self.player['y'] += 40
+        elif key == arcade.key.DOWN or key == arcade.key.S:
+            self.player['y'] -= 40
+        elif key == arcade.key.LEFT or key == arcade.key.A:
+            self.player['x'] -= 40
+        elif key == arcade.key.RIGHT or key == arcade.key.D:
+            self.player['x'] += 40
+        print(self.player['x'],self.player['y'])
+        arcade.start_render()
+        self.grid_draw(0,0,40,40,20,15,(156,10,54), 2)
+        arcade.draw_rectangle_filled(self.player['x'], self.player['y'], self.player['width'], self.player['height'], self.player['color'])
+        arcade.finish_render()
 
 
 
