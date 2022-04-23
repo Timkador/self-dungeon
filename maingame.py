@@ -7,23 +7,37 @@ act = 0
 tick = 100
 delta_stockpile = 0.0
 
+class Player():
+    def __init__(self, x, y, w, h, color, mov_dis):
+        self.player = {
+            'x': x,
+            'y': y,
+            'width': w,
+            'height': h,
+            'color': color,
+            'mov_dis': mov_dis
+        }
+
+    def move(self):
+            ch = choice(['x-1', 'x1', 'y-1', 'y+1'])
+            self.player[ch[0]] = self.player[ch[0]] + int(ch[1:])*self.player['mov_dis']
+            if self.player[ch[0]] < 0:
+                self.player[ch[0]] += self.player['mov_dis']
+            elif ch[0] == 'x' and self.player[ch[0]] > SCREEN_WIDTH:
+                self.player[ch[0]] -= self.player['mov_dis']
+            elif ch[0] == 'y' and self.player[ch[0]] > SCREEN_HEIGHT:
+                self.player[ch[0]] -= self.player['mov_dis']
+
 class MyGame(arcade.Window):
     def __init__(self, width, height, title):
         super().__init__(width, height, title)
         arcade.set_background_color((78,5,27))
-        self.player = None
+        self.player = Player(80, 80, 20, 20, (22,222,22), 40)
 
     def setup(self):
         """ Set up the game variables. Call to re-start the game. """
         # Create your sprites and sprite lists here
-        self.player = {
-            'x': 80,
-            'y': 80,
-            'width': 20,
-            'height': 20,
-            'color': (22,222,22),
-            'mov_dis': 40
-        }
+
 
     def on_draw(self):
         self.clear()
@@ -38,20 +52,12 @@ class MyGame(arcade.Window):
         global delta_stockpile
         delta_stockpile += delta_time
         if delta_stockpile > 0.5:
-            ch = choice(['x-1', 'x1', 'y-1', 'y+1'])
-            self.player[ch[0]] = self.player[ch[0]] + int(ch[1:])*self.player['mov_dis']
-            if self.player[ch[0]] < 0:
-                self.player[ch[0]] += self.player['mov_dis']
-            elif ch[0] == 'x' and self.player[ch[0]] > SCREEN_WIDTH:
-                self.player[ch[0]] -= self.player['mov_dis']
-            elif ch[0] == 'y' and self.player[ch[0]] > SCREEN_HEIGHT:
-                self.player[ch[0]] -= self.player['mov_dis']
+            self.player.move()
             arcade.start_render()
             self.grid_draw(0,0,40,40,21,16,(156,10,54), 2)
-            arcade.draw_rectangle_filled(self.player['x'], self.player['y'], self.player['width'], self.player['height'], self.player['color'])
+            arcade.draw_rectangle_filled(self.player.player['x'], self.player.player['y'], self.player.player['width'], self.player.player['height'], self.player.player['color'])
             arcade.finish_render()
             delta_stockpile = 0.0
-        
     
     def on_key_release(self, key, modifiers):
         pass
