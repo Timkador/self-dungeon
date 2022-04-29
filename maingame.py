@@ -138,7 +138,7 @@ class MyGame(arcade.Window):
             arcade.finish_render()
             delta_stockpile = 0.0
     def on_mouse_press(self, x, y, button, key_modifiers):
-        colorb.random_color()
+        colorb.random_color('background')
         self.grid.update_color()
         arcade.set_background_color(colorb.color['background'])
 
