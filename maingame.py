@@ -137,10 +137,11 @@ class MyGame(arcade.Window):
             self.player.draw_player()            
             arcade.finish_render()
             delta_stockpile = 0.0
-    def on_mouse_press(self, x, y, button, key_modifiers):
-        colorb.random_color('background')
-        self.grid.update_color()
-        arcade.set_background_color(colorb.color['background'])
+    def on_key_press(self, key, key_modifiers):
+        if key == arcade.key.C:
+            colorb.random_color('background')
+            self.grid.update_color()
+            arcade.set_background_color(colorb.color['background'])
 
 def main():
     game = MyGame(SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_TITLE)
