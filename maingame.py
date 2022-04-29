@@ -13,11 +13,14 @@ class Color():
         self.colmanual = {}
     def manual_edit(self, instructions, name, scolor):
         self.colmanual[name] = [instructions, scolor]
-        self.color[name] = [int(scolor[0]*instructions[0]), int(scolor[1]*instructions[1]), int(scolor[2]*instructions[2])]
+        self.color[name] = [int(self.color[scolor][0]*instructions[0]), int(self.color[scolor][1]*instructions[1]), int(self.color[scolor][2]*instructions[2])]
     def color_change(self):
-        for name, inst in self.colmanual.items:
-            self.color[name] = [max(min(255, int(inst[1][0]*inst[0][0])), 0), max(min(255, int(inst[1][1]*inst[0][1])), 0), max(min(255, int(inst[1][2]*inst[0][2])), 0)]
-        
+        for name, inst in self.colmanual.items():
+            self.color[name] = [max(min(255, int(self.color[inst[1]][0]*inst[0][0])), 0), max(min(255, int(self.color[inst[1]][1]*inst[0][1])), 0), max(min(255, int(self.color[inst[1]][2]*inst[0][2])), 0)]
+    def random_color(self, name):
+        self.color[name] = [randint(0, 255), randint(0, 255), randint(0, 255)]
+        colorb.color_change()
+
 colorb = Color([125,125,125])
 cmult = {
     'wall': (0.5,0.5,0.5),
@@ -26,7 +29,7 @@ cmult = {
     'empl': (2,2,2)
 }
 for name,c in cmult.items():
-    colorb.manual_edit(c, name, colorb.color['background'])
+    colorb.manual_edit(c, name, 'background')
 
 class Player():
     def __init__(self, x, y, w, h, color, grid):
@@ -54,7 +57,7 @@ class Player():
             if b.block_stats['passable'] == True:
                 if not (b.block_stats['x'] == self.player['column'] and b.block_stats['y'] == self.player['row']):
                     moves.append(b)
-        if len(blocks) != 0:
+        if len(moves) != 0:
             move = choice(moves)
             self.grid.array[self.player['row']][self.player['column']].block_stats['has_player'] = 0
             self.grid.array[self.player['row']][self.player['column']].color_definer()
@@ -85,6 +88,10 @@ class Grid():
         for i in range(self.grid_stats['rows']):
             for j in range(self.grid_stats['columns']):
                 arcade.draw_rectangle_filled(self.grid_stats['stx']+(self.grid_stats['sqheight']*j), self.grid_stats['sty']+(self.grid_stats['sqwidth']*i), self.grid_stats['sqwidth']-linesize, self.grid_stats['sqheight']-linesize, self.array[i][j].block_stats['color'])
+    def update_color(self):
+        for i in self.array:
+            for j in i:
+                j.color_definer()
 
 class Block():
     def __init__(self, x, y, passable):
@@ -107,7 +114,6 @@ class Block():
             else:
                 self.block_stats['color'] = colorb.color['empl']
             
-
 class MyGame(arcade.Window):
     def __init__(self, width, height, title):
         super().__init__(width, height, title)
@@ -124,15 +130,17 @@ class MyGame(arcade.Window):
     def on_update(self, delta_time):
         global delta_stockpile
         delta_stockpile += delta_time
-        if delta_stockpile > 1:
+        if delta_stockpile > 0.25:
             self.player.move()
             arcade.start_render()
             self.grid.grid_draw(2)
             self.player.draw_player()            
             arcade.finish_render()
             delta_stockpile = 0.0
-    def on_key_release(self, key, modifiers):
-        pass
+    def on_mouse_press(self, x, y, button, key_modifiers):
+        colorb.random_color()
+        self.grid.update_color()
+        arcade.set_background_color(colorb.color['background'])
 
 def main():
     game = MyGame(SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_TITLE)
