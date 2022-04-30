@@ -1,9 +1,11 @@
+from cmath import inf
 import arcade
 from random import randint, choice
 SCREEN_WIDTH = 1600
-SCREEN_HEIGHT = 800
+SCREEN_HEIGHT = 1000
 SCREEN_TITLE = "Self-dungeon"
-delta_stockpile = 0.0
+move_frequence = 0.0
+draw_refresh_rate = 0.0
 
 class Color():
     def __init__(self, background):
@@ -73,15 +75,15 @@ class Grid():
             'columns': columns,
             'sqwidth': sqwidth,
             'sqheight': sqheight,
-            'stx': SCREEN_WIDTH//2-sqwidth*rows//2,
-            'sty': SCREEN_HEIGHT//2-sqheight*columns//2
+            'stx': SCREEN_WIDTH/2-sqwidth*columns/2,
+            'sty': SCREEN_HEIGHT/2-sqheight*rows/2
         }
         self.array = []
     def build_array(self):
         for i in range(self.grid_stats['rows']):
             row = []
             for j in range(self.grid_stats['columns']):
-                row.append(Block(j, i, choice([True, False])))
+                row.append(Block(j, i, choice([True, True, False])))
                 row[-1].color_definer()
             self.array.append(row)
     def grid_draw(self, linesize=1):
@@ -92,6 +94,16 @@ class Grid():
         for i in self.array:
             for j in i:
                 j.color_definer()
+    def closest_block(self, x, y):
+        x_list = []
+        y_list = []
+        for i in range(len(self.array)):
+            y_list.append(abs(self.grid_stats['sty']+(self.array[i][0].block_stats['y'])*self.grid_stats['sqheight']-y))
+        for i in range(len(self.array[0])):
+            x_list.append(abs(self.grid_stats['stx']+(self.array[0][i].block_stats['x'])*self.grid_stats['sqwidth']-x))
+        print([x_list.index(min(x_list)), y_list.index(min(y_list))])
+        return [x_list.index(min(x_list)), y_list.index(min(y_list))]
+        
 
 class Block():
     def __init__(self, x, y, passable):
@@ -112,8 +124,8 @@ class Block():
             if not self.block_stats['has_player']:
                 self.block_stats['color'] = colorb.color['empty']
             else:
-                self.block_stats['color'] = colorb.color['empl']
-            
+                self.block_stats['color'] = colorb.color['empl']   
+
 class MyGame(arcade.Window):
     def __init__(self, width, height, title):
         super().__init__(width, height, title)
@@ -121,27 +133,31 @@ class MyGame(arcade.Window):
         self.grid = Grid(10, 5, 40, 40)
         self.grid.build_array()
         self.player = Player(randint(0,self.grid.grid_stats['rows']-1), randint(0,self.grid.grid_stats['columns']-1), 20, 20, (22,222,22), self.grid)
-        self.delta_stockpile = 0.0
+        self.move_frequence = 0.0
     def setup(self):
         """ Set up the game variables. Call to re-start the game. """
         # Create your sprites and sprite lists here
     def on_draw(self):
         self.clear()
     def on_update(self, delta_time):
-        global delta_stockpile
-        delta_stockpile += delta_time
-        if delta_stockpile > 0.25:
+        global move_frequence
+        move_frequence += delta_time
+        if move_frequence > 1:
             self.player.move()
-            arcade.start_render()
-            self.grid.grid_draw(2)
-            self.player.draw_player()            
-            arcade.finish_render()
-            delta_stockpile = 0.0
+            move_frequence = 0.0
+        arcade.start_render()
+        self.grid.grid_draw(2)
+        self.player.draw_player()            
+        arcade.finish_render()
     def on_key_press(self, key, key_modifiers):
         if key == arcade.key.C:
             colorb.random_color('background')
             self.grid.update_color()
             arcade.set_background_color(colorb.color['background'])
+    def on_mouse_press(self, x, y, button, modifiers):
+        pos = self.grid.closest_block(x,y)
+        self.grid.array[pos[1]][pos[0]].block_stats['passable'] = not self.grid.array[pos[1]][pos[0]].block_stats['passable']
+        self.grid.array[pos[1]][pos[0]].color_definer()
 
 def main():
     game = MyGame(SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_TITLE)
