@@ -176,8 +176,31 @@ class RoomManager():
                         if position not in tiles[0]:
                             wall_tiles.append(position)
             tiles.append(wall_tiles)
-            print(tiles)
-                     
+            near_wall_tiles = []
+            for j in self.room_min:
+                if j[0] * j[1] == 0:
+                    for k in range(5):
+                        position = [
+                            min(max(tiles[0][0][0]+j[0] * 3 + (k - 2) * abs(j[1]), 0), self.grid_stats['x_am']-1), 
+                            min(max(tiles[0][0][1]+j[1] * 3 + (k - 2) * abs(j[0]), 0), self.grid_stats['y_am']-1)
+                        ]
+                        if position not in tiles[0]:
+                            near_wall_tiles.append(position)
+                elif j[0] * j[1] != 0:
+                    position = [
+                            min(max(tiles[0][0][0]+j[0] * 2, 0), self.grid_stats['x_am']-1), 
+                            min(max(tiles[0][0][1]+j[1] * 2, 0), self.grid_stats['y_am']-1)
+                        ]
+                    if position not in tiles[0]:
+                        near_wall_tiles.append(position)                    
+            tiles.append(near_wall_tiles)
+            for j in tiles:
+                for k in j:
+                    if k in self.pos:
+                        self.pos.remove(k)
+            i.room_stats['tiles'] = tiles[0]
+            i.room_stats['wall_tiles'] = tiles[1]
+                                                       
 class Grid():
     def __init__(self, x_am, y_am, sqwidth, sqheight):
         self.grid_stats = {
@@ -204,7 +227,7 @@ class Grid():
         mng = RoomManager(self.array, self.grid_stats, room_list)
         mng.create()
     def build_array(self):
-        self.generate_rooms(1)
+        self.generate_rooms(5)
     def grid_draw(self, linesize=1):
         for i in range(self.grid_stats['y_am']):
             for j in range(self.grid_stats['x_am']):
@@ -255,7 +278,7 @@ class MyGame(arcade.Window):
     def __init__(self, width, height, title):
         super().__init__(width, height, title)
         arcade.set_background_color(colorb.color['background'])
-        self.grid = Grid(20, 20, 40, 40)
+        self.grid = Grid(12, 12, 40, 40)
         self.grid.build_array()
         self.player = Player(randint(0,self.grid.grid_stats['y_am']-1), randint(0,self.grid.grid_stats['x_am']-1), 20, 20, 'player', self.grid, True, 'player', 100, 10)
         self.entities = [self.player]
@@ -290,7 +313,7 @@ class MyGame(arcade.Window):
             move_frequence = 0.0
         self.grid.update_color()
         arcade.start_render()
-        self.grid.grid_draw(0)
+        self.grid.grid_draw()
         for i in self.entities:
             i.draw_entity()            
         arcade.finish_render()
