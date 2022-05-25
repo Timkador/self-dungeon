@@ -1,6 +1,6 @@
 from cmath import inf
 import arcade
-from random import randint, choice
+from random import randint, choice, shuffle
 from math import sqrt
 SCREEN_WIDTH = 1600
 SCREEN_HEIGHT = 1000
@@ -60,8 +60,8 @@ colorb.color_change()
 class Entity():
     def __init__(self, x, y, w, h, colorname, grid, moveable, entype):
         self.entity = {
-            'row': x,
-            'column': y,
+            'x': x,
+            'y': y,
             'width': w,
             'height': h,
             'color': colorname,
@@ -69,35 +69,36 @@ class Entity():
             'entype': entype
         }
         self.grid = grid
-        self.grid.array[self.entity['row']][self.entity['column']].block_stats['on_block'] = self.entity
+        self.grid.array[self.entity['x']][self.entity['y']].block_stats['on_block'] = self.entity
     def draw_entity(self):
-        arcade.draw_rectangle_filled(self.grid.grid_stats['stx']+self.grid.grid_stats['sqwidth']*self.entity['column'], 
-                                    self.grid.grid_stats['sty']+self.grid.grid_stats['sqheight']*self.entity['row'], 
+        arcade.draw_rectangle_filled(self.grid.grid_stats['stx']+self.grid.grid_stats['sqwidth']*self.entity['x'], 
+                                    self.grid.grid_stats['sty']+self.grid.grid_stats['sqheight']*self.entity['y'], 
                                     self.entity['width'], self.entity['height'], colorb.color[self.entity['color']])
     def pos_around(self, p_check=False):
         blocks = [
-            self.grid.array[min(self.entity['row']+1, self.grid.grid_stats['y_am']-1)][self.entity['column']],
-            self.grid.array[max(self.entity['row']-1, 0)][self.entity['column']],
-            self.grid.array[self.entity['row']][min(self.entity['column']+1, self.grid.grid_stats['x_am']-1)],
-            self.grid.array[self.entity['row']][max(self.entity['column']-1, 0)]]
+            self.grid.array[min(self.entity['x']+1, self.grid.grid_stats['x_am']-1)][self.entity['y']],
+            self.grid.array[max(self.entity['x']-1, 0)][self.entity['y']],
+            self.grid.array[self.entity['x']][min(self.entity['y']+1, self.grid.grid_stats['y_am']-1)],
+            self.grid.array[self.entity['x']][max(self.entity['y']-1, 0)]
+            ]
         block_list = []
         for b in blocks:
             if b.block_stats['passable'] == True or not p_check:
-                if not (b.block_stats['x'] == self.entity['column'] and b.block_stats['y'] == self.entity['row']):
+                if not (b.block_stats['x'] == self.entity['x'] and b.block_stats['y'] == self.entity['y']):
                     block_list.append(b)
         return block_list
     def move(self):
         moves = self.pos_around(True)
         if len(moves) != 0 and self.entity['moveable']:
             move = choice(moves)
-            self.grid.array[self.entity['row']][self.entity['column']].block_stats['on_block'] = 0
-            self.grid.array[self.entity['row']][self.entity['column']].block_stats['passable'] = True
-            self.grid.array[self.entity['row']][self.entity['column']].color_definer()
-            self.entity['row'] = move.block_stats['y']
-            self.entity['column'] = move.block_stats['x']
-            self.grid.array[self.entity['row']][self.entity['column']].block_stats['on_block'] = self.entity
-            self.grid.array[self.entity['row']][self.entity['column']].block_stats['passable'] = False
-            self.grid.array[self.entity['row']][self.entity['column']].color_definer()
+            self.grid.array[self.entity['x']][self.entity['y']].block_stats['on_block'] = 0
+            self.grid.array[self.entity['x']][self.entity['y']].block_stats['passable'] = True
+            self.grid.array[self.entity['x']][self.entity['y']].color_definer()
+            self.entity['x'] = move.block_stats['x']
+            self.entity['y'] = move.block_stats['y']
+            self.grid.array[self.entity['x']][self.entity['y']].block_stats['on_block'] = self.entity
+            self.grid.array[self.entity['x']][self.entity['y']].block_stats['passable'] = False
+            self.grid.array[self.entity['x']][self.entity['y']].color_definer()
 
 class Player(Entity):
     def __init__(self, x, y, w, h, colorname, grid, moveable, entype, health, damage):
@@ -112,7 +113,7 @@ class Player(Entity):
         enm_fnd = []
         for i in entity_list:
             if i.entity['moveable'] == True and i.entity['entype'] == 'enemy':
-                enm_pos.append([i, [i.entity['row'], i.entity['column']]])
+                enm_pos.append([i, [i.entity['x'], i.entity['y']]])
         if enm_pos:
             for i in enm_pos:
                 if self.grid.array[i[1][0]][i[1][1]] in blocks:
@@ -137,70 +138,16 @@ class Enemy(Entity):
         return [self.enemy_stats['health'], self.enemy_stats['health'] > 0]
 
 class Room():
-    def __init__(self, name, type=0):
+    def __init__(self, name, rtype=0):
         self.room_stats = {
             'tiles': [],
-            'walltiles': [],
+            'wall_tiles': [],
             'name': name,
-            'type': 0
+            'type': rtype
             }
-
-class RoomManager():
-    def __init__(self, array, grid_stats, rooms):
-        self.array = array
-        self.grid_stats = grid_stats
-        self.pos = self.array_pos()
-        self.rooms = rooms
-        self.room_min = [[-1,-1],[-1,0],[-1,1],[0,-1],[0,1],[1,-1],[1,0],[1,1]]
-    def array_pos(self):
-        pos = []
-        for i in self.array:
-            for j in i:
-                if not (j.block_stats['x'] == 0 or j.block_stats['x'] == self.grid_stats['x_am']-1 or j.block_stats['y'] == 0 or j.block_stats['y'] == self.grid_stats['y_am']-1):
-                    pos.append([j.block_stats['x'], j.block_stats['y']])
-        return pos
-    def create(self):
-        for i in self.rooms:
-            tiles = []
-            tiles.append([choice(self.pos)])
-            for j in self.room_min:
-                tiles[0].append([tiles[0][0][0] + j[0], tiles[0][0][1] + j[1]])
-            wall_tiles = []
-            for j in self.room_min:
-                if j[0] * j[1] == 0:
-                    for k in range(3):
-                        position = [
-                            min(max(tiles[0][0][0]+j[0] * 2 + (k - 1) * abs(j[1]), 0), self.grid_stats['x_am']-1), 
-                            min(max(tiles[0][0][1]+j[1] * 2 + (k - 1) * abs(j[0]), 0), self.grid_stats['y_am']-1)
-                        ]
-                        if position not in tiles[0]:
-                            wall_tiles.append(position)
-            tiles.append(wall_tiles)
-            near_wall_tiles = []
-            for j in self.room_min:
-                if j[0] * j[1] == 0:
-                    for k in range(5):
-                        position = [
-                            min(max(tiles[0][0][0]+j[0] * 3 + (k - 2) * abs(j[1]), 0), self.grid_stats['x_am']-1), 
-                            min(max(tiles[0][0][1]+j[1] * 3 + (k - 2) * abs(j[0]), 0), self.grid_stats['y_am']-1)
-                        ]
-                        if position not in tiles[0]:
-                            near_wall_tiles.append(position)
-                elif j[0] * j[1] != 0:
-                    position = [
-                            min(max(tiles[0][0][0]+j[0] * 2, 0), self.grid_stats['x_am']-1), 
-                            min(max(tiles[0][0][1]+j[1] * 2, 0), self.grid_stats['y_am']-1)
-                        ]
-                    if position not in tiles[0]:
-                        near_wall_tiles.append(position)                    
-            tiles.append(near_wall_tiles)
-            for j in tiles:
-                for k in j:
-                    if k in self.pos:
-                        self.pos.remove(k)
-            i.room_stats['tiles'] = tiles[0]
-            i.room_stats['wall_tiles'] = tiles[1]
-                                                       
+    def activate_walls(self):
+        for i in self.room_stats['wall_tiles']:
+            i.block_stats['passable'] = False                                                                        
 class Grid():
     def __init__(self, x_am, y_am, sqwidth, sqheight):
         self.grid_stats = {
@@ -209,29 +156,102 @@ class Grid():
             'sqwidth': sqwidth,
             'sqheight': sqheight,
             'stx': SCREEN_WIDTH/2-sqwidth*x_am/2,
-            'sty': SCREEN_HEIGHT/2-sqheight*y_am/2
+            'sty': SCREEN_HEIGHT/2-sqheight*y_am/2,
+            'room_gen_pos': [],
+            'room_min': [[-1,-1],[-1,0],[-1,1],[0,-1],[0,1],[1,-1],[1,0],[1,1]]
         }
         self.array = []
         self.rooms = []
+        self.gen_blocks = {}
     def empty_array(self):
-        for i in range(self.grid_stats['y_am']):
-            row = []
-            for j in range(self.grid_stats['x_am']):
-                row.append(Block(j, i, True))
-            self.array.append(row)
+        for i in range(self.grid_stats['x_am']):
+            x = []
+            for j in range(self.grid_stats['y_am']):
+                x.append(Block(i, j, True))
+            self.array.append(x)
+    def array_pos(self):
+        for i in self.array:
+            for j in i:
+                if not (j.block_stats['x'] == 0 or j.block_stats['x'] == self.grid_stats['x_am']-1 or j.block_stats['y'] == 0 or j.block_stats['y'] == self.grid_stats['y_am']-1):
+                    self.grid_stats['room_gen_pos'].append([j.block_stats['x'], j.block_stats['y']])
     def generate_rooms(self, am):
         self.empty_array()
-        room_list = []
+        self.array_pos()
         for i in range(am):
-            room_list.append(Room(f'room{i}'))
-        mng = RoomManager(self.array, self.grid_stats, room_list)
-        mng.create()
+            self.rooms.append(Room(f'room{i}'))
+        for i in self.rooms:
+            tiles = []
+            pos = choice(self.grid_stats['room_gen_pos'])
+            tiles.append([self.array[pos[0]][pos[1]]]) 
+            for j in self.grid_stats['room_min']:
+                tiles[0].append(self.array[tiles[0][0].block_stats['x'] + j[0]][tiles[0][0].block_stats['y']  + j[1]])
+                i.room_stats['tiles'].append(self.array[tiles[0][0].block_stats['x'] + j[0]][tiles[0][0].block_stats['y']  + j[1]])
+            wall_tiles = []
+            for j in self.grid_stats['room_min']:
+                if j[0] * j[1] == 0:
+                    for k in range(3):
+                        block = self.array[min(max(tiles[0][0].block_stats['x']+j[0] * 2 + (k - 1) * abs(j[1]), 0), self.grid_stats['x_am']-1)][min(max(tiles[0][0].block_stats['y']+j[1] * 2 + (k - 1) * abs(j[0]), 0), self.grid_stats['y_am']-1)]
+                        if block not in tiles[0]:
+                            wall_tiles.append(block)
+                            i.room_stats['wall_tiles'].append(block)
+                            if str(block.block_stats['x']*(self.grid_stats['x_am']-1)+block.block_stats['y']) in self.gen_blocks.keys():
+                                self.gen_blocks[str(block.block_stats['x'])+' '+str(block.block_stats['y'])].append(i)
+                            else:
+                                self.gen_blocks[str(block.block_stats['x'])+' '+str(block.block_stats['y'])] = [i]
+            tiles.append(wall_tiles)
+            near_wall_tiles = []
+            for j in self.grid_stats['room_min']:
+                if j[0] * j[1] == 0:
+                    for k in range(5):
+                        block = self.array[min(max(tiles[0][0].block_stats['x']+j[0] * 3 + (k - 2) * abs(j[1]), 0), self.grid_stats['x_am']-1)][min(max(tiles[0][0].block_stats['y']+j[1] * 3 + (k - 2) * abs(j[0]), 0), self.grid_stats['y_am']-1)]
+                        if block not in tiles[0]:
+                            near_wall_tiles.append(block)
+                elif j[0] * j[1] != 0:
+                    block = self.array[min(max(tiles[0][0].block_stats['x']+j[0] * 2, 0), self.grid_stats['x_am']-1)][min(max(tiles[0][0].block_stats['y']+j[1] * 2, 0), self.grid_stats['y_am']-1)]                         
+                    if block not in tiles[0] and block not in tiles[1]:
+                        near_wall_tiles.append(block)                    
+            tiles.append(near_wall_tiles)
+            for j in tiles:
+                for k in j:
+                    if [k.block_stats['x'], k.block_stats['y']] in self.grid_stats['room_gen_pos']:
+                        self.grid_stats['room_gen_pos'].remove([k.block_stats['x'], k.block_stats['y']])
+    def expand_rooms(self):
+        while self.gen_blocks != {}:
+            blockname = choice(list(self.gen_blocks.keys()))
+            block = blockname.split()
+            block[0], block[1] = int(block[0]), int(block[1])
+            if len(self.gen_blocks[blockname]) == 1:
+                ablock = self.array[block[0]][block[1]]
+                self.gen_blocks[blockname][0].room_stats['tiles'].append(ablock)
+                self.gen_blocks[blockname][0].room_stats['wall_tiles'].remove(ablock)
+                blocks = [
+                self.array[min(block[0]+1, self.grid_stats['x_am']-1)][block[1]],
+                self.array[max(block[0]-1, 0)][block[1]],
+                self.array[block[0]][min(block[1]+1, self.grid_stats['y_am']-1)],
+                self.array[block[0]][max(block[1]-1, 0)]
+                ]
+                for i in blocks:
+                    valid = True
+                    for j in self.rooms:
+                        if i in j.room_stats['tiles'] or (i in j.room_stats['wall_tiles'] and self.gen_blocks[blockname][0] == j):
+                            valid = False
+                            break
+                    if valid:
+                        if str(i.block_stats['x']*(self.grid_stats['x_am']-1)+i.block_stats['y']) in self.gen_blocks.keys():
+                            self.gen_blocks[str(i.block_stats['x'])+' '+str(i.block_stats['y'])].append(self.gen_blocks[blockname][0])
+                        else:
+                            self.gen_blocks[str(i.block_stats['x'])+' '+str(i.block_stats['y'])] = [self.gen_blocks[blockname][0]]
+                        self.gen_blocks[blockname][0].room_stats['wall_tiles'].append(i)
+            self.gen_blocks.pop(blockname)                     
     def build_array(self):
-        self.generate_rooms(5)
+        self.generate_rooms(50)
+        self.expand_rooms()
+        for i in self.rooms:
+            i.activate_walls()
     def grid_draw(self, linesize=1):
-        for i in range(self.grid_stats['y_am']):
-            for j in range(self.grid_stats['x_am']):
-                arcade.draw_rectangle_filled(self.grid_stats['stx']+(self.grid_stats['sqwidth']*j), self.grid_stats['sty']+(self.grid_stats['sqheight']*i), self.grid_stats['sqwidth']-linesize, self.grid_stats['sqheight']-linesize, self.array[i][j].block_stats['color'])
+        for i in range(self.grid_stats['x_am']):
+            for j in range(self.grid_stats['y_am']):
+                arcade.draw_rectangle_filled(self.grid_stats['stx']+(self.grid_stats['sqwidth']*i), self.grid_stats['sty']+(self.grid_stats['sqheight']*j), self.grid_stats['sqwidth']-linesize, self.grid_stats['sqheight']-linesize, self.array[i][j].block_stats['color'])
     def update_color(self):
         for i in self.array:
             for j in i:
@@ -240,9 +260,9 @@ class Grid():
         x_list = []
         y_list = []
         for i in range(len(self.array)):
-            y_list.append(abs(self.grid_stats['sty']+(self.array[i][0].block_stats['y'])*self.grid_stats['sqheight']-y))
+            x_list.append(abs(self.grid_stats['stx']+(self.array[i][0].block_stats['x'])*self.grid_stats['sqwidth']-x))
         for i in range(len(self.array[0])):
-            x_list.append(abs(self.grid_stats['stx']+(self.array[0][i].block_stats['x'])*self.grid_stats['sqwidth']-x))
+            y_list.append(abs(self.grid_stats['sty']+(self.array[0][i].block_stats['y'])*self.grid_stats['sqheight']-y))
         return [x_list.index(min(x_list)), y_list.index(min(y_list))]
     def avablock_list(self):
         pos_pos = []
@@ -253,13 +273,12 @@ class Grid():
         return pos_pos
         
 class Block():
-    def __init__(self, x, y, passable, roomname=[]):
+    def __init__(self, x, y, passable, room=[]):
         self.block_stats = {
             'x': x, 
             'y': y,
             'passable': passable,
             'on_block': 0,
-            'room': roomname
         }
     def color_definer(self):
         global colorb
@@ -272,15 +291,15 @@ class Block():
             if self.block_stats['on_block'] == 0:
                 self.block_stats['color'] = colorb.color['empty']
             else:
-                self.block_stats['color'] = colorb.modify_color(colorb.color[self.block_stats['on_block']['color']], 'on_blockmod') 
+                self.block_stats['color'] = colorb.modify_color(colorb.color[self.block_stats['on_block']['color']], 'on_blockmod')
 
 class MyGame(arcade.Window):
     def __init__(self, width, height, title):
         super().__init__(width, height, title)
         arcade.set_background_color(colorb.color['background'])
-        self.grid = Grid(12, 12, 40, 40)
+        self.grid = Grid(50, 50, 10, 10)
         self.grid.build_array()
-        self.player = Player(randint(0,self.grid.grid_stats['y_am']-1), randint(0,self.grid.grid_stats['x_am']-1), 20, 20, 'player', self.grid, True, 'player', 100, 10)
+        self.player = Player(randint(0,self.grid.grid_stats['x_am']-1), randint(0,self.grid.grid_stats['y_am']-1), 5, 5, 'player', self.grid, True, 'player', 100, 10)
         self.entities = [self.player]
         self.move_frequence = 0.0
         self.enemy_count = 0
@@ -304,8 +323,8 @@ class MyGame(arcade.Window):
             self.player.attack(self.player.check_enemies(self.entities))
             for i in self.entities:
                 if not i.check_health()[1]:
-                    self.grid.array[i.entity['row']][i.entity['column']].block_stats['passable'] = True
-                    self.grid.array[i.entity['row']][i.entity['column']].block_stats['on_block'] = 0
+                    self.grid.array[i.entity['x']][i.entity['y']].block_stats['passable'] = True
+                    self.grid.array[i.entity['x']][i.entity['y']].block_stats['on_block'] = 0
                     self.entities.remove(i)
                     continue
             for j in self.entities:
@@ -324,9 +343,8 @@ class MyGame(arcade.Window):
             arcade.set_background_color(colorb.color['background'])
     def on_mouse_press(self, x, y, button, modifiers):
         pos = self.grid.closest_block(x,y)
-        print(pos)
-        self.grid.array[pos[1]][pos[0]].block_stats['passable'] = not self.grid.array[pos[1]][pos[0]].block_stats['passable']
-        self.grid.array[pos[1]][pos[0]].color_definer()
+        self.grid.array[pos[0]][pos[1]].block_stats['passable'] = not self.grid.array[pos[0]][pos[1]].block_stats['passable']
+        self.grid.array[pos[0]][pos[1]].color_definer()
 
 def main():
     game = MyGame(SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_TITLE)
