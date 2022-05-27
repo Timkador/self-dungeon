@@ -45,13 +45,13 @@ class Color():
     def modify_color(self, color, inst):
         return [max(min(255, color[0]*self.colmanual[inst][0][0]), 0), max(min(255, color[1]*self.colmanual[inst][0][1]), 0), max(min(255, color[2]*self.colmanual[inst][0][2]), 0)]
 
-colorb = Color([125,125,125])
+colorb = Color([100,100,100])
 cmult = {
     'wall': (.5, .5, .5),
     'empty': (1.5, 1.5, 1.5),
     'on_blockmod': (.75, .75, .75, 'm'),
     'player': (1, 1, 1, 'f'),
-    'enemy': ([0.9, 1.1], [0.9, 1.1], [0.9, 1.1], 'g')
+    'enemy': ([0.5, 2], [0.5, 2], [0.5, 2], 'g')
 }
 for name,c in cmult.items():
     colorb.manual_edit(c, name, 'background')
@@ -143,11 +143,17 @@ class Room():
             'tiles': [],
             'wall_tiles': [],
             'name': name,
-            'type': rtype
+            'type': rtype,
+            'color': name
             }
     def activate_walls(self):
         for i in self.room_stats['wall_tiles']:
-            i.block_stats['passable'] = False                                                                        
+            i.block_stats['passable'] = False
+            if i in self.room_stats['tiles']:
+                self.room_stats['tiles'].remove(i)
+    def mark_walls(self):
+        for i in self.room_stats['wall_tiles']:
+            i.block_stats['on_block'] = self.room_stats                                                                        
 class Grid():
     def __init__(self, x_am, y_am, sqwidth, sqheight):
         self.grid_stats = {
@@ -158,11 +164,13 @@ class Grid():
             'stx': SCREEN_WIDTH/2-sqwidth*x_am/2,
             'sty': SCREEN_HEIGHT/2-sqheight*y_am/2,
             'room_gen_pos': [],
-            'room_min': [[-1,-1],[-1,0],[-1,1],[0,-1],[0,1],[1,-1],[1,0],[1,1]]
+            'room_walls': [[-1,0], [1,0], [0,-1], [0,1]],
+            'room_near_walls': [[1,1], [1,-1], [-1,1], [-1,-1], [-2,0], [2,0], [0,-2], [0,2]]
         }
         self.array = []
         self.rooms = []
         self.gen_blocks = {}
+        self.walls = {}
     def empty_array(self):
         for i in range(self.grid_stats['x_am']):
             x = []
@@ -179,38 +187,25 @@ class Grid():
         self.array_pos()
         for i in range(am):
             self.rooms.append(Room(f'room{i}'))
+            colorb.randinrange(f'room{i}', 'enemy', 'background')
         for i in self.rooms:
             tiles = []
+            if not self.grid_stats['room_gen_pos']:
+                break
             pos = choice(self.grid_stats['room_gen_pos'])
+            print(pos)
             tiles.append([self.array[pos[0]][pos[1]]]) 
-            for j in self.grid_stats['room_min']:
-                tiles[0].append(self.array[tiles[0][0].block_stats['x'] + j[0]][tiles[0][0].block_stats['y']  + j[1]])
-                i.room_stats['tiles'].append(self.array[tiles[0][0].block_stats['x'] + j[0]][tiles[0][0].block_stats['y']  + j[1]])
             wall_tiles = []
-            for j in self.grid_stats['room_min']:
-                if j[0] * j[1] == 0:
-                    for k in range(3):
-                        block = self.array[min(max(tiles[0][0].block_stats['x']+j[0] * 2 + (k - 1) * abs(j[1]), 0), self.grid_stats['x_am']-1)][min(max(tiles[0][0].block_stats['y']+j[1] * 2 + (k - 1) * abs(j[0]), 0), self.grid_stats['y_am']-1)]
-                        if block not in tiles[0]:
-                            wall_tiles.append(block)
-                            i.room_stats['wall_tiles'].append(block)
-                            if str(block.block_stats['x']*(self.grid_stats['x_am']-1)+block.block_stats['y']) in self.gen_blocks.keys():
-                                self.gen_blocks[str(block.block_stats['x'])+' '+str(block.block_stats['y'])].append(i)
-                            else:
-                                self.gen_blocks[str(block.block_stats['x'])+' '+str(block.block_stats['y'])] = [i]
+            for j in self.grid_stats['room_walls']:
+                block = self.array[min(max(tiles[0][0].block_stats['x']+ j[0], 0), self.grid_stats['x_am']-1)][min(max(tiles[0][0].block_stats['y']+ j[1], 0), self.grid_stats['y_am']-1)]
+                if block not in tiles[0]:
+                    wall_tiles.append(block)
+                    i.room_stats['wall_tiles'].append(block)
+                    if str(block.block_stats['x'])+' '+str(block.block_stats['y']) in self.gen_blocks.keys():
+                        self.gen_blocks[str(block.block_stats['x'])+' '+str(block.block_stats['y'])].append(i)
+                    else:
+                        self.gen_blocks[str(block.block_stats['x'])+' '+str(block.block_stats['y'])] = [i]
             tiles.append(wall_tiles)
-            near_wall_tiles = []
-            for j in self.grid_stats['room_min']:
-                if j[0] * j[1] == 0:
-                    for k in range(5):
-                        block = self.array[min(max(tiles[0][0].block_stats['x']+j[0] * 3 + (k - 2) * abs(j[1]), 0), self.grid_stats['x_am']-1)][min(max(tiles[0][0].block_stats['y']+j[1] * 3 + (k - 2) * abs(j[0]), 0), self.grid_stats['y_am']-1)]
-                        if block not in tiles[0]:
-                            near_wall_tiles.append(block)
-                elif j[0] * j[1] != 0:
-                    block = self.array[min(max(tiles[0][0].block_stats['x']+j[0] * 2, 0), self.grid_stats['x_am']-1)][min(max(tiles[0][0].block_stats['y']+j[1] * 2, 0), self.grid_stats['y_am']-1)]                         
-                    if block not in tiles[0] and block not in tiles[1]:
-                        near_wall_tiles.append(block)                    
-            tiles.append(near_wall_tiles)
             for j in tiles:
                 for k in j:
                     if [k.block_stats['x'], k.block_stats['y']] in self.grid_stats['room_gen_pos']:
@@ -220,8 +215,8 @@ class Grid():
             blockname = choice(list(self.gen_blocks.keys()))
             block = blockname.split()
             block[0], block[1] = int(block[0]), int(block[1])
+            ablock = self.array[block[0]][block[1]]
             if len(self.gen_blocks[blockname]) == 1:
-                ablock = self.array[block[0]][block[1]]
                 self.gen_blocks[blockname][0].room_stats['tiles'].append(ablock)
                 self.gen_blocks[blockname][0].room_stats['wall_tiles'].remove(ablock)
                 blocks = [
@@ -233,22 +228,33 @@ class Grid():
                 for i in blocks:
                     valid = True
                     for j in self.rooms:
-                        if i in j.room_stats['tiles'] or (i in j.room_stats['wall_tiles'] and self.gen_blocks[blockname][0] == j):
+                        if not i in j.room_stats['tiles']:
+                            if (i in j.room_stats['wall_tiles'] and j != self.gen_blocks[blockname][0]) or i not in j.room_stats['wall_tiles']:
+                                continue
+                            else:
+                                valid = False
+                                break                                
+                        else:
                             valid = False
                             break
                     if valid:
-                        if str(i.block_stats['x']*(self.grid_stats['x_am']-1)+i.block_stats['y']) in self.gen_blocks.keys():
+                        if str(i.block_stats['x'])+' '+str(i.block_stats['y']) in self.gen_blocks.keys():
                             self.gen_blocks[str(i.block_stats['x'])+' '+str(i.block_stats['y'])].append(self.gen_blocks[blockname][0])
                         else:
                             self.gen_blocks[str(i.block_stats['x'])+' '+str(i.block_stats['y'])] = [self.gen_blocks[blockname][0]]
                         self.gen_blocks[blockname][0].room_stats['wall_tiles'].append(i)
-            self.gen_blocks.pop(blockname)                     
+                self.update_color()
+            self.gen_blocks.pop(blockname)
+    def create_entrances(self):
+        pass
     def build_array(self):
-        self.generate_rooms(50)
+        self.generate_rooms(3)
+        print(self.gen_blocks)
         self.expand_rooms()
         for i in self.rooms:
             i.activate_walls()
     def grid_draw(self, linesize=1):
+        self.update_color()
         for i in range(self.grid_stats['x_am']):
             for j in range(self.grid_stats['y_am']):
                 arcade.draw_rectangle_filled(self.grid_stats['stx']+(self.grid_stats['sqwidth']*i), self.grid_stats['sty']+(self.grid_stats['sqheight']*j), self.grid_stats['sqwidth']-linesize, self.grid_stats['sqheight']-linesize, self.array[i][j].block_stats['color'])
@@ -297,9 +303,9 @@ class MyGame(arcade.Window):
     def __init__(self, width, height, title):
         super().__init__(width, height, title)
         arcade.set_background_color(colorb.color['background'])
-        self.grid = Grid(50, 50, 10, 10)
+        self.grid = Grid(8, 8, 40, 40)
         self.grid.build_array()
-        self.player = Player(randint(0,self.grid.grid_stats['x_am']-1), randint(0,self.grid.grid_stats['y_am']-1), 5, 5, 'player', self.grid, True, 'player', 100, 10)
+        self.player = Player(randint(0,self.grid.grid_stats['x_am']-1), randint(0,self.grid.grid_stats['y_am']-1), 20, 20, 'player', self.grid, True, 'player', 100, 10)
         self.entities = [self.player]
         self.move_frequence = 0.0
         self.enemy_count = 0
@@ -329,8 +335,8 @@ class MyGame(arcade.Window):
                     continue
             for j in self.entities:
                 j.move()
+                pass
             move_frequence = 0.0
-        self.grid.update_color()
         arcade.start_render()
         self.grid.grid_draw()
         for i in self.entities:
