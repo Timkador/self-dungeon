@@ -51,7 +51,7 @@ cmult = {
     'empty': (1.5, 1.5, 1.5),
     'on_blockmod': (.75, .75, .75, 'm'),
     'player': (1, 1, 1, 'f'),
-    'enemy': ([0.5, 2], [0.5, 2], [0.5, 2], 'g')
+    'enemy': ([0.8, 1.2], [0.8, 1.2], [0.8, 1.2], 'g')
 }
 for name,c in cmult.items():
     colorb.manual_edit(c, name, 'background')
@@ -69,7 +69,6 @@ class Entity():
             'entype': entype
         }
         self.grid = grid
-        self.grid.array[self.entity['x']][self.entity['y']].block_stats['on_block'] = self.entity
     def draw_entity(self):
         arcade.draw_rectangle_filled(self.grid.grid_stats['stx']+self.grid.grid_stats['sqwidth']*self.entity['x'], 
                                     self.grid.grid_stats['sty']+self.grid.grid_stats['sqheight']*self.entity['y'], 
@@ -168,7 +167,7 @@ class Grid():
         self.array = []
         self.rooms = []
         self.gen_blocks = {}
-        self.walls = {}
+        self.connections = {}
     def empty_array(self):
         for i in range(self.grid_stats['x_am']):
             x = []
@@ -244,7 +243,7 @@ class Grid():
     def create_entrances(self):
         pass
     def build_array(self):
-        self.generate_rooms(10)
+        self.generate_rooms(40)
         self.expand_rooms()
         for i in self.rooms:
             i.activate_walls(self.rooms)
@@ -299,9 +298,10 @@ class MyGame(arcade.Window):
     def __init__(self, width, height, title):
         super().__init__(width, height, title)
         arcade.set_background_color(colorb.color['background'])
-        self.grid = Grid(20, 20, 40, 40)
+        self.grid = Grid(40, 40, 20, 20)
         self.grid.build_array()
-        self.player = Player(randint(0,self.grid.grid_stats['x_am']-1), randint(0,self.grid.grid_stats['y_am']-1), 20, 20, 'player', self.grid, True, 'player', 100, 10)
+        player_spawn = choice(self.grid.avablock_list())
+        self.player = Player(player_spawn.block_stats['x'], player_spawn.block_stats['y'], 10, 10, 'player', self.grid, True, 'player', 100, 10)
         self.entities = [self.player]
         self.move_frequence = 0.0
         self.enemy_count = 0
@@ -313,12 +313,12 @@ class MyGame(arcade.Window):
         global move_frequence
         move_frequence += delta_time
         if move_frequence > .5:
-            if randint(0, 4) == 5:
+            if randint(0, 4) == 2:
                 if self.grid.grid_stats['y_am']*self.grid.grid_stats['x_am'] > len(self.entities):
                     colorb.randinrange(f'enemy{self.enemy_count}', 'enemy', 'background')
                     if self.grid.avablock_list():
                         block = choice(self.grid.avablock_list())
-                        self.entities.append(Enemy(block.block_stats['y'], block.block_stats['x'], 20, 20, f'enemy{self.enemy_count}', self.grid, True, 'enemy', 10))
+                        self.entities.append(Enemy(block.block_stats['x'], block.block_stats['y'], 10, 10, f'enemy{self.enemy_count}', self.grid, True, 'enemy', 10))
                         self.enemy_count += 1
                         block.block_stats['on_block'] = self.entities[-1].entity
                         block.block_stats['passable'] = False
