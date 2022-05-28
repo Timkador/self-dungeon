@@ -146,11 +146,9 @@ class Room():
             'type': rtype,
             'color': name
             }
-    def activate_walls(self):
+    def activate_walls(self, rooms):
         for i in self.room_stats['wall_tiles']:
             i.block_stats['passable'] = False
-            if i in self.room_stats['tiles']:
-                self.room_stats['tiles'].remove(i)
     def mark_walls(self):
         for i in self.room_stats['wall_tiles']:
             i.block_stats['on_block'] = self.room_stats                                                                        
@@ -180,8 +178,7 @@ class Grid():
     def array_pos(self):
         for i in self.array:
             for j in i:
-                if not (j.block_stats['x'] == 0 or j.block_stats['x'] == self.grid_stats['x_am']-1 or j.block_stats['y'] == 0 or j.block_stats['y'] == self.grid_stats['y_am']-1):
-                    self.grid_stats['room_gen_pos'].append([j.block_stats['x'], j.block_stats['y']])
+                self.grid_stats['room_gen_pos'].append([j.block_stats['x'], j.block_stats['y']])
     def generate_rooms(self, am):
         self.empty_array()
         self.array_pos()
@@ -193,7 +190,6 @@ class Grid():
             if not self.grid_stats['room_gen_pos']:
                 break
             pos = choice(self.grid_stats['room_gen_pos'])
-            print(pos)
             tiles.append([self.array[pos[0]][pos[1]]]) 
             wall_tiles = []
             for j in self.grid_stats['room_walls']:
@@ -248,11 +244,11 @@ class Grid():
     def create_entrances(self):
         pass
     def build_array(self):
-        self.generate_rooms(3)
-        print(self.gen_blocks)
+        self.generate_rooms(10)
         self.expand_rooms()
         for i in self.rooms:
-            i.activate_walls()
+            i.activate_walls(self.rooms)
+            #i.mark_walls()
     def grid_draw(self, linesize=1):
         self.update_color()
         for i in range(self.grid_stats['x_am']):
@@ -303,7 +299,7 @@ class MyGame(arcade.Window):
     def __init__(self, width, height, title):
         super().__init__(width, height, title)
         arcade.set_background_color(colorb.color['background'])
-        self.grid = Grid(8, 8, 40, 40)
+        self.grid = Grid(20, 20, 40, 40)
         self.grid.build_array()
         self.player = Player(randint(0,self.grid.grid_stats['x_am']-1), randint(0,self.grid.grid_stats['y_am']-1), 20, 20, 'player', self.grid, True, 'player', 100, 10)
         self.entities = [self.player]
@@ -338,7 +334,7 @@ class MyGame(arcade.Window):
                 pass
             move_frequence = 0.0
         arcade.start_render()
-        self.grid.grid_draw()
+        self.grid.grid_draw(0)
         for i in self.entities:
             i.draw_entity()            
         arcade.finish_render()
